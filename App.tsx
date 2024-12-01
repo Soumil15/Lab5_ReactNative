@@ -1,118 +1,155 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import React, { useState } from 'react';
+import { View, Text, TextInput, Button, FlatList, StyleSheet, TouchableOpacity, ToastAndroid } from 'react-native';
 
-import React from 'react';
-import type {PropsWithChildren} from 'react';
-import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
-
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
-
-type SectionProps = PropsWithChildren<{
+// Define a type for the notes
+type Note = {
+  id: string;
   title: string;
-}>;
+  description: string;
+};
 
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
-}
+export default function App() {
+  const [currentScreen, setCurrentScreen] = useState<'Home' | 'NewNote'>('Home');
+  const [notes, setNotes] = useState<Note[]>([]); // Notes array with proper type
+  const [newNote, setNewNote] = useState<Pick<Note, 'title' | 'description'>>({
+    title: '',
+    description: '',
+  });
 
-function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+  const saveNote = () => {
+    if (!newNote.title.trim() || !newNote.description.trim()) {
+      ToastAndroid.show('Both Title and Description are required!', ToastAndroid.SHORT);
+      return;
+    }
+    setNotes([
+      ...notes,
+      { id: Date.now().toString(), title: newNote.title, description: newNote.description },
+    ]);
+    setNewNote({ title: '', description: '' }); // Clear inputs
+    setCurrentScreen('Home');
   };
 
-  return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+  const renderHomeScreen = () => (
+    <View style={styles.container}>
+      <View style={styles.appBar}>
+        <Text style={styles.appBarText}>Notes</Text>
+      </View>
+      {notes.length > 0 ? (
+        <FlatList
+          data={notes}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <View style={styles.noteCard}>
+              <Text style={styles.noteTitle}>{item.title}</Text>
+              <Text>{item.description}</Text>
+            </View>
+          )}
+        />
+      ) : (
+        <Text style={styles.noNotesText}>No notes here.</Text>
+      )}
+      <TouchableOpacity style={styles.fab} onPress={() => setCurrentScreen('NewNote')}>
+        <Text style={styles.fabText}>+</Text>
+      </TouchableOpacity>
+    </View>
   );
+
+  const renderNewNoteScreen = () => (
+    <View style={styles.container}>
+      <View style={styles.appBar}>
+        <TouchableOpacity onPress={() => setCurrentScreen('Home')}>
+          <Text style={styles.backArrow}>{'←'}</Text>
+        </TouchableOpacity>
+        <Text style={styles.appBarText}>New Note</Text>
+      </View>
+      <TextInput
+        style={styles.input}
+        placeholder="Title"
+        value={newNote.title}
+        onChangeText={(text) => setNewNote({ ...newNote, title: text })}
+      />
+      <TextInput
+        style={[styles.input, styles.textArea]}
+        placeholder="Description"
+        value={newNote.description}
+        onChangeText={(text) => setNewNote({ ...newNote, description: text })}
+        multiline
+      />
+      <Button title="Save" onPress={saveNote} />
+    </View>
+  );
+
+  return currentScreen === 'Home' ? renderHomeScreen() : renderNewNoteScreen();
 }
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+  container: {
+    flex: 1,
+    backgroundColor: '#f8f9fa',
+    padding: 10,
   },
-  sectionTitle: {
+  appBar: {
+    height: 60,
+    backgroundColor: '#6200EE',
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexDirection: 'row',
+  },
+  appBarText: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+  },
+  backArrow: {
+    color: '#fff',
     fontSize: 24,
-    fontWeight: '600',
+    position: 'absolute',
+    left: 10,
   },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
+  fab: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    backgroundColor: '#6200EE',
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  highlight: {
-    fontWeight: '700',
+  fabText: {
+    color: '#fff',
+    fontSize: 24,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    padding: 10,
+    marginVertical: 10,
+    borderRadius: 5,
+  },
+  textArea: {
+    height: 120,
+    textAlignVertical: 'top',
+  },
+  noNotesText: {
+    textAlign: 'center',
+    color: '#888',
+    marginTop: 20,
+  },
+  noteCard: {
+    backgroundColor: '#fff',
+    padding: 15,
+    marginVertical: 5,
+    borderRadius: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  noteTitle: {
+    fontWeight: 'bold',
+    marginBottom: 5,
   },
 });
-
-export default App;
